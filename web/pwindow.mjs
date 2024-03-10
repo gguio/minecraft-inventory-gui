@@ -91,7 +91,6 @@ class InventoryManager {
           const free = item.stackSize - item.count
           const consumable = Math.min(floating.count, free)
           floating.count -= consumable
-          item.count += consumable
           if (floating.count <= 0) {
             reactive.floatingItem = undefined
           }
@@ -110,38 +109,32 @@ class InventoryManager {
         this.win.needsUpdate = true
       }
     } else { // pickup item
-      reactive.floatingItem = item
+      reactive.floatingItem = {...item}
       this.setSlot(inventoryIndex, null)
     }
   }
 
   onRightClick (inventoryIndex, slot) {
     const { reactive } = this.win
+    const initialCount = slot.count
     this.bot?.clickWindow(inventoryIndex, 1, 0)
 
-    const floating = this.win.floatingItem
+    const floating = reactive.floatingItem
     if (floating) {
       if (slot) {
         const free = slot.stackSize - slot.count
         if (slot.type === floating.type && free >= 1) {
-          slot.count++
           floating.count--
         } else {
-          // we can't right click on this slot as there's something already there
+          reactive.floatingItem = {...slot}
         }
       } else {
-        const slot = floating.clone()
-        slot.count = 1
+        const slot = new Item(floating.type, floating.count)
         floating.count--
-        this.setSlot(inventoryIndex, slot)
       }
     } else if (slot) {
-      const split = Math.ceil(slot.count / 2)
-      // slot.count -= split
-      // this.win.floatingItem.count = split
       reactive.floatingItem = {...slot}
-      slot.count -= split
-      reactive.floatingItem.count = split
+      reactive.floatingItem.count = initialCount - slot.count
       this.setSlot(inventoryIndex, slot.count ? slot : null)
     }
     if (slot?.count === 0) delete this.inv.slots[inventoryIndex]
